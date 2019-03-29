@@ -1,17 +1,16 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import SwapiService from '../../services/swapi.service'
-
+import Spinner from '../spinner';
+import ErrorIndicator from '../error-indicator';
 import './random-planet.css';
 
 export default class RandomPlanet extends Component {
   swapi = new SwapiService();
 
   state = {
-    id: null,
-    name: null,
-    population: null,
-    rotationPeriod: null,
-    diameter: null,
+    planet: {},
+    loading: true,
+    error: false
   }
 
   constructor() {
@@ -19,24 +18,58 @@ export default class RandomPlanet extends Component {
     this.updatePlanet();
   }
 
+  onPlanetLoaded = (planet) => {
+    this.setState({
+      planet,
+      loading: false,
+      error: false
+    });
+  }
+
+  onError = (err) => {
+    console.log('err', err.message);
+    this.setState({
+      error: true,
+      loading: false
+    })
+  }
+
   updatePlanet() {
+    //const id = 12000
     const id = Math.floor(Math.random()*25 + 2);
     this.swapi
       .getPlanet(id)
-      .then(res => {
-        console.log(res);        
-        this.setState(res);      
-      })
+      .then(this.onPlanetLoaded)
+      .catch(this.onError)      
   }
 
-  render() {
-    const {name, population, rotationPeriod, diameter} = this.state;
+  render() {    
+    const {planet, loading, error} = this.state;
+    const hasData = !(loading || error);
+    const errorMessage = error? <ErrorIndicator />: null;
+    const spinner = loading? <Spinner />: null;
+    const content = hasData? <PlanetView planet = {planet}/>: null
 
     return (
       <div className="random-planet jumbotron rounded">
-        <img className="planet-image"
-             src="https://starwars-visualguide.com/assets/img/planets/5.jpg" />
-        <div>
+        {errorMessage}
+        {spinner}
+        {content}
+      </div>
+
+    );
+  }
+}
+
+const PlanetView = ({planet}) => {
+  const { id, name, population, rotationPeriod, diameter} = planet;
+
+  return (
+    <Fragment>
+      <img className="planet-image"
+        alt='some img'
+        src="https://starwars-visualguide.com/assets/img/planets/5.jpg" />
+      <div>
           <h4>{name}</h4>
           <ul className="list-group list-group-flush">
             <li className="list-group-item">
@@ -53,8 +86,6 @@ export default class RandomPlanet extends Component {
             </li>
           </ul>
         </div>
-      </div>
-
-    );
-  }
+    </Fragment>    
+  )
 }
